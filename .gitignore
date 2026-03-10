@@ -1,0 +1,32 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Windows scripts
+*.bat
+
+# Logs
+logs/
+*.log
+
+# Dependency directories
+node_modules/
+
+# Build outputs
+dist/
+target/
+*.class
+*.jar
+
+# Go
+*.exe
+vendor/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
