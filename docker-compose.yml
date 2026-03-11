@@ -1,0 +1,66 @@
+services:
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./auth-service/.env
+    environment:
+      - AUTH_PORT=5001
+    restart: unless-stopped
+
+  friend-services:
+    build: ./friend-services
+    container_name: friend-services
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./friend-services/.env
+    environment:
+      - FRIEND_PORT=5002
+    restart: unless-stopped
+
+  messager-services:
+    build: ./messager-services
+    container_name: messager-services
+    ports:
+      - "5003:5003"
+    env_file:
+      - ./messager-services/.env
+    environment:
+      - MESSAGER_PORT=5003
+    restart: unless-stopped
+
+  notification-services:
+    build: ./notification-services
+    container_name: notification-services
+    ports:
+      - "5004:5004"
+    env_file:
+      - ./notification-services/.env
+    environment:
+      - NOTIFICATION_PORT=5004
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - GATEWAY_PORT=5000
+      - AUTH_SERVICE_URL=http://auth-service
+      - AUTH_PORT=5001
+      - FRIEND_SERVICE_URL=http://friend-services
+      - FRIEND_PORT=5002
+      - MESSAGER_SERVICE_URL=http://messager-services
+      - MESSAGER_PORT=5003
+      - NOTIFICATION_SERVICE_URL=http://notification-services
+      - NOTIFICATION_PORT=5004
+    depends_on:
+      - auth-service
+      - friend-services
+      - messager-services
+      - notification-services
+    restart: unless-stopped
