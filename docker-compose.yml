@@ -1,66 +1,143 @@
+networks:
+  chat-network:
+    driver: bridge
+
 services:
-  auth-service:
-    build: ./auth-service
-    container_name: auth-service
+  # ─── Auth ────────────────────────────────────────────────
+  auth-services:
+    build: ./services/auth-services
+    container_name: auth-services
     ports:
       - "5001:5001"
     env_file:
-      - ./auth-service/.env
-    environment:
-      - AUTH_PORT=5001
+      - ./services/auth-services/.env
     restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5001/api/auth/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
+  # ─── Users ───────────────────────────────────────────────
+  users-services:
+    build: ./services/users-services
+    container_name: users-services
+    ports:
+      - "5005:5005"
+    env_file:
+      - ./services/users-services/.env
+    restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5005/api/users/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ─── Device ──────────────────────────────────────────────
+  device-service:
+    build: ./services/device-service
+    container_name: device-service
+    ports:
+      - "5006:5006"
+    env_file:
+      - ./services/device-service/.env
+    restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5006/api/devices/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ─── Friend ──────────────────────────────────────────────
   friend-services:
-    build: ./friend-services
+    build: ./services/friend-services
     container_name: friend-services
     ports:
       - "5002:5002"
     env_file:
-      - ./friend-services/.env
-    environment:
-      - FRIEND_PORT=5002
+      - ./services/friend-services/.env
     restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5002/ 2>&1 | grep -qv 'failed' || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
-  messager-services:
-    build: ./messager-services
-    container_name: messager-services
+  # ─── Messenger ───────────────────────────────────────────
+  messenger-services:
+    build: ./services/messenger-services
+    container_name: messenger-services
     ports:
       - "5003:5003"
     env_file:
-      - ./messager-services/.env
-    environment:
-      - MESSAGER_PORT=5003
+      - ./services/messenger-services/.env
     restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5003/ 2>&1 | grep -qv 'failed' || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
+  # ─── Notification ────────────────────────────────────────
   notification-services:
-    build: ./notification-services
+    build: ./services/notification-services
     container_name: notification-services
     ports:
       - "5004:5004"
     env_file:
-      - ./notification-services/.env
-    environment:
-      - NOTIFICATION_PORT=5004
+      - ./services/notification-services/.env
     restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5004/ 2>&1 | grep -qv 'failed' || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
+  # ─── API Gateway ─────────────────────────────────────────
   api-gateway:
-    build: ./api-gateway
+    build: ./services/api-gateway
     container_name: api-gateway
     ports:
       - "5000:5000"
-    environment:
-      - GATEWAY_PORT=5000
-      - AUTH_SERVICE_URL=http://auth-service
-      - AUTH_PORT=5001
-      - FRIEND_SERVICE_URL=http://friend-services
-      - FRIEND_PORT=5002
-      - MESSAGER_SERVICE_URL=http://messager-services
-      - MESSAGER_PORT=5003
-      - NOTIFICATION_SERVICE_URL=http://notification-services
-      - NOTIFICATION_PORT=5004
-    depends_on:
-      - auth-service
-      - friend-services
-      - messager-services
-      - notification-services
+    env_file:
+      - ./services/api-gateway/.env
     restart: unless-stopped
+    networks:
+      - chat-network
+    depends_on:
+      auth-services:
+        condition: service_started
+      users-services:
+        condition: service_started
+      device-service:
+        condition: service_started
+      friend-services:
+        condition: service_started
+      messenger-services:
+        condition: service_started
+      notification-services:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
