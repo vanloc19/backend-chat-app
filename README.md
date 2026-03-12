@@ -36,37 +36,65 @@ Notes:
 - Gateway routing is prefix-based (`/auth`, `/friends`, `/messager`, `/notifications`).
 - `/messager` supports WebSocket upgrades.
 
-## Auth flow (Register / Login → JWT → Authorized calls)
+## Auth flow (Register / Login -> JWT -> Authorized calls)
 
 ```mermaid
-sequenceDiagram
-  autonumber
-  participant C as Client
-  participant GW as API Gateway
-  participant A as Auth Service
-  participant M as MongoDB (auth)
-  participant S as Downstream Service<br/>(friends/messager/notifications)
+flowchart TD
+  Client[Client]
+  Gateway[API Gateway\n/auth/*]
+  Redis[(Redis OTP)]
+  Profiles[(MongoDB users / profiles)]
+  Tokens[(MongoDB auth / refresh_tokens)]
+  Device[device-service]
+  JWT[AuthResponse\naccessToken + refreshToken]
+  Protected[Protected APIs\n/users /devices /friends /messenger /notifications]
 
-  rect rgb(245,245,245)
-    C->>GW: POST /auth/register (phone, password, displayName)
-    GW->>A: Forward /register
-    A->>M: Create user (hashed password)
-    A-->>C: 200 + JWT
-  end
+  SendOtp[POST /auth/send-otp]
+  Register[POST /auth/register]
+  OtpLogin[POST /auth/verify-otp]
+  PasswordLogin[POST /auth/login]
+  Refresh[POST /auth/refresh]
 
-  rect rgb(245,245,245)
-    C->>GW: POST /auth/login (phone, password)
-    GW->>A: Forward /login
-    A->>M: Verify credentials
-    A-->>C: 200 + JWT
-  end
+  Client -->|phoneNumber| Gateway --> SendOtp
+  SendOtp -->|store OTP for 120s\nrate-limit 60s| Redis
 
-  rect rgb(235,250,235)
-    C->>GW: Request to protected endpoint<br/>Authorization: Bearer <JWT>
-    GW->>S: Forward request (and optionally propagate auth header)
-    S-->>C: Response
-  end
+  Client -->|phoneNumber + otp + password + displayName\n(+ optional email, deviceInfo)| Gateway
+  Gateway --> Register
+  Register -->|verify OTP| Redis
+  Register -->|create profile| Profiles
+  Register -.->|optional device registration| Device
+  Register -->|issue refresh token| Tokens
+  Register --> JWT
+
+  Client -->|phoneNumber + otp\n(+ optional deviceInfo)| Gateway
+  Gateway --> OtpLogin
+  OtpLogin -->|verify OTP| Redis
+  OtpLogin -->|find or create profile| Profiles
+  OtpLogin -.->|optional device registration| Device
+  OtpLogin -->|issue refresh token| Tokens
+  OtpLogin --> JWT
+
+  Client -->|phoneNumber + password\n(+ optional deviceInfo)| Gateway
+  Gateway --> PasswordLogin
+  PasswordLogin -->|load profile + verify passwordHash| Profiles
+  PasswordLogin -.->|optional device registration| Device
+  PasswordLogin -->|issue refresh token| Tokens
+  PasswordLogin --> JWT
+
+  Client -->|refreshToken| Gateway --> Refresh
+  Refresh -->|validate + rotate| Tokens
+  Refresh -->|load user by userId| Profiles
+  Refresh --> JWT
+
+  Client -->|Authorization: Bearer accessToken| Gateway --> Protected
 ```
+
+Notes:
+- Public auth routes at the gateway are `send-otp`, `register`, `verify-otp`, `login`, and `refresh`.
+- Protected routes must include `Authorization: Bearer <accessToken>`; the gateway validates the JWT before proxying.
+- User profiles are stored in `users/profiles`, while refresh tokens are stored separately in `auth/refresh_tokens`.
+- `deviceInfo` is optional on register/login/verify-otp. If device registration fails, auth still succeeds.
+- In the current dev setup, OTP is mocked to `190603`, stored in Redis for 120 seconds, and can be resent after 60 seconds.
 
 ## Service matrix
 
