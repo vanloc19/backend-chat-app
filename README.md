@@ -40,61 +40,56 @@ Notes:
 
 ```mermaid
 flowchart TD
-  Client[Client]
-  Gateway["API Gateway<br/>/auth/*"]
-  Redis[(Redis OTP)]
-  Profiles[("MongoDB<br/>users / profiles")]
-  Tokens[("MongoDB<br/>auth / refresh_tokens")]
-  Device[device-service]
-  JWT["AuthResponse<br/>accessToken + refreshToken"]
-  Protected["Protected APIs<br/>/users  /devices  /friends  /messenger  /notifications"]
 
-  SendOtp[POST /auth/send-otp]
-  Register[POST /auth/register]
-  OtpLogin[POST /auth/verify-otp]
-  PasswordLogin[POST /auth/login]
-  Refresh[POST /auth/refresh]
+  subgraph OTP["1 · POST /auth/send-otp"]
+    direction LR
+    c1([Client]) -->|phoneNumber| a1[auth-service]
+    a1 -->|"store OTP=190603, TTL=120s, rate-limit=60s"| r1[(Redis)]
+  end
 
-  Client -->|phoneNumber| Gateway --> SendOtp
-  SendOtp -->|store OTP 120s, rate-limit 60s| Redis
+  subgraph REG["2 · POST /auth/register  —  phone + otp + password + displayName"]
+    direction LR
+    c2([Client]) --> a2[auth-service]
+    a2 -->|"1. verify OTP"| r2[(Redis)]
+    a2 -->|"2. create profile"| p2[("users / profiles")]
+    a2 -.->|"3. register device (optional)"| d2[device-service]
+    a2 -->|"4. store refresh token"| t2[("auth / refresh_tokens")]
+    a2 --> j2(["accessToken + refreshToken"])
+  end
 
-  Client -->|phoneNumber + otp + password + displayName| Gateway
-  Gateway --> Register
-  Register -->|verify OTP| Redis
-  Register -->|create profile| Profiles
-  Register -.->|optional device registration| Device
-  Register -->|issue refresh token| Tokens
-  Register --> JWT
+  subgraph VOTP["3 · POST /auth/verify-otp  —  phone + otp"]
+    direction LR
+    c3([Client]) --> a3[auth-service]
+    a3 -->|"1. verify OTP"| r3[(Redis)]
+    a3 -->|"2. find or create profile"| p3[("users / profiles")]
+    a3 -.->|"3. register device (optional)"| d3[device-service]
+    a3 -->|"4. store refresh token"| t3[("auth / refresh_tokens")]
+    a3 --> j3(["accessToken + refreshToken"])
+  end
 
-  Client -->|phoneNumber + otp| Gateway
-  Gateway --> OtpLogin
-  OtpLogin -->|verify OTP| Redis
-  OtpLogin -->|find or create profile| Profiles
-  OtpLogin -.->|optional device registration| Device
-  OtpLogin -->|issue refresh token| Tokens
-  OtpLogin --> JWT
+  subgraph LOGIN["4 · POST /auth/login  —  phone + password"]
+    direction LR
+    c4([Client]) --> a4[auth-service]
+    a4 -->|"1. load profile + verify passwordHash"| p4[("users / profiles")]
+    a4 -.->|"2. register device (optional)"| d4[device-service]
+    a4 -->|"3. store refresh token"| t4[("auth / refresh_tokens")]
+    a4 --> j4(["accessToken + refreshToken"])
+  end
 
-  Client -->|phoneNumber + password| Gateway
-  Gateway --> PasswordLogin
-  PasswordLogin -->|load profile + verify passwordHash| Profiles
-  PasswordLogin -.->|optional device registration| Device
-  PasswordLogin -->|issue refresh token| Tokens
-  PasswordLogin --> JWT
+  subgraph REFRESH["5 · POST /auth/refresh  —  refreshToken"]
+    direction LR
+    c5([Client]) --> a5[auth-service]
+    a5 -->|"1. validate + rotate token"| t5[("auth / refresh_tokens")]
+    a5 -->|"2. load user"| p5[("users / profiles")]
+    a5 --> j5(["new accessToken + refreshToken"])
+  end
 
-  Client -->|refreshToken| Gateway --> Refresh
-  Refresh -->|validate + rotate| Tokens
-  Refresh -->|load user by userId| Profiles
-  Refresh --> JWT
-
-  Client -->|Authorization: Bearer accessToken| Gateway --> Protected
+  subgraph PROTECTED["6 · Authorized API call  —  Authorization: Bearer accessToken"]
+    direction LR
+    c6([Client]) -->|"JWT validated at gateway"| gw[API Gateway]
+    gw --> svc["/users  /devices  /friends  /messenger  /notifications"]
+  end
 ```
-
-Notes:
-- Public auth routes at the gateway are `send-otp`, `register`, `verify-otp`, `login`, and `refresh`.
-- Protected routes must include `Authorization: Bearer <accessToken>`; the gateway validates the JWT before proxying.
-- User profiles are stored in `users/profiles`, while refresh tokens are stored separately in `auth/refresh_tokens`.
-- `deviceInfo` is optional on register/login/verify-otp. If device registration fails, auth still succeeds.
-- In the current dev setup, OTP is mocked to `190603`, stored in Redis for 120 seconds, and can be resent after 60 seconds.
 
 ## Service matrix
 
