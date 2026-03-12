@@ -41,13 +41,13 @@ Notes:
 ```mermaid
 flowchart TD
   Client[Client]
-  Gateway[API Gateway\n/auth/*]
+  Gateway["API Gateway<br/>/auth/*"]
   Redis[(Redis OTP)]
-  Profiles[(MongoDB users / profiles)]
-  Tokens[(MongoDB auth / refresh_tokens)]
+  Profiles[("MongoDB<br/>users / profiles")]
+  Tokens[("MongoDB<br/>auth / refresh_tokens")]
   Device[device-service]
-  JWT[AuthResponse\naccessToken + refreshToken]
-  Protected[Protected APIs\n/users /devices /friends /messenger /notifications]
+  JWT["AuthResponse<br/>accessToken + refreshToken"]
+  Protected["Protected APIs<br/>/users  /devices  /friends  /messenger  /notifications"]
 
   SendOtp[POST /auth/send-otp]
   Register[POST /auth/register]
@@ -56,9 +56,9 @@ flowchart TD
   Refresh[POST /auth/refresh]
 
   Client -->|phoneNumber| Gateway --> SendOtp
-  SendOtp -->|store OTP for 120s\nrate-limit 60s| Redis
+  SendOtp -->|store OTP 120s, rate-limit 60s| Redis
 
-  Client -->|phoneNumber + otp + password + displayName\n(+ optional email, deviceInfo)| Gateway
+  Client -->|phoneNumber + otp + password + displayName| Gateway
   Gateway --> Register
   Register -->|verify OTP| Redis
   Register -->|create profile| Profiles
@@ -66,7 +66,7 @@ flowchart TD
   Register -->|issue refresh token| Tokens
   Register --> JWT
 
-  Client -->|phoneNumber + otp\n(+ optional deviceInfo)| Gateway
+  Client -->|phoneNumber + otp| Gateway
   Gateway --> OtpLogin
   OtpLogin -->|verify OTP| Redis
   OtpLogin -->|find or create profile| Profiles
@@ -74,7 +74,7 @@ flowchart TD
   OtpLogin -->|issue refresh token| Tokens
   OtpLogin --> JWT
 
-  Client -->|phoneNumber + password\n(+ optional deviceInfo)| Gateway
+  Client -->|phoneNumber + password| Gateway
   Gateway --> PasswordLogin
   PasswordLogin -->|load profile + verify passwordHash| Profiles
   PasswordLogin -.->|optional device registration| Device
