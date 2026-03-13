@@ -139,36 +139,4 @@ flowchart LR
 docker compose up -d --build
 ```
 
-## Backend folder structure (clean style)
-
-```text
-backend/
-├ services/
-│  ├ api-gateway/
-│  ├ auth-services/
-│  ├ users-services/
-│  ├ friend-services/
-│  ├ messenger-services/
-│  ├ notification-services/
-│  └ device-service/
-├ shared/
-│  ├ logger/
-│  ├ middleware/
-│  ├ utils/
-│  ├ libs/
-│  └ types/
-├ infra/
-│  ├ docker/
-│  │  ├ docker-compose.infra.yml
-│  │  ├ Dockerfile.auth
-│  │  └ Dockerfile.user
-│  ├ kafka/
-│  │  └ docker-compose.kafka.yml
-│  ├ redis/
-│  │  └ redis.conf
-│  └ nginx/
-│     └ nginx.conf
-├ docker-compose.yml
-└ README.md
-```
 
