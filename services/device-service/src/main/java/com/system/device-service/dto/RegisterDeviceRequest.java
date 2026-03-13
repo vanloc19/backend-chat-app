@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class RegisterDeviceRequest {
     private String userId;
+    private String deviceId;
     private String platform;
     private String deviceName;
     private String osVersion;

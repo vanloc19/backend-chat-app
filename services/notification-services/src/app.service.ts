@@ -12,6 +12,8 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AppService.name);
   private readonly exchangeName = 'chat.events';
   private readonly queueName = 'notification.events';
+  private readonly maxConnectAttempts = 10;
+  private readonly retryDelayMs = 3000;
   private readonly routingKeys = [
     'friend.requested',
     'friend.accepted',
@@ -39,22 +41,56 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.connection = await amqplib.connect(this.brokerUrl);
-    const channel = await this.connection.createChannel();
-    this.channel = channel;
+    await this.connectWithRetry();
+  }
 
-    await channel.assertExchange(this.exchangeName, 'topic', { durable: true });
-    await channel.assertQueue(this.queueName, { durable: true });
+  private async connectWithRetry() {
+    for (let attempt = 1; attempt <= this.maxConnectAttempts; attempt += 1) {
+      try {
+        this.connection = await amqplib.connect(this.brokerUrl as string);
+        const channel = await this.connection.createChannel();
+        this.channel = channel;
 
-    for (const routingKey of this.routingKeys) {
-      await channel.bindQueue(this.queueName, this.exchangeName, routingKey);
+        await channel.assertExchange(this.exchangeName, 'topic', {
+          durable: true,
+        });
+        await channel.assertQueue(this.queueName, { durable: true });
+
+        for (const routingKey of this.routingKeys) {
+          await channel.bindQueue(
+            this.queueName,
+            this.exchangeName,
+            routingKey,
+          );
+        }
+
+        await channel.consume(
+          this.queueName,
+          (msg) => this.handleMessage(msg),
+          {
+            noAck: false,
+          },
+        );
+
+        this.logger.log(`RabbitMQ consumer connected: ${this.brokerUrl}`);
+        return;
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `RabbitMQ connection attempt ${attempt}/${this.maxConnectAttempts} failed: ${reason}`,
+        );
+
+        if (attempt === this.maxConnectAttempts) {
+          throw error;
+        }
+
+        await this.sleep(this.retryDelayMs);
+      }
     }
+  }
 
-    await channel.consume(this.queueName, (msg) => this.handleMessage(msg), {
-      noAck: false,
-    });
-
-    this.logger.log(`RabbitMQ consumer connected: ${this.brokerUrl}`);
+  private sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private handleMessage(msg: ConsumeMessage | null) {

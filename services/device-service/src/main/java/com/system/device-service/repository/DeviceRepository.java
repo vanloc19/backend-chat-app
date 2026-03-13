@@ -12,7 +12,11 @@ public interface DeviceRepository extends MongoRepository<Device, String> {
 
     List<Device> findByUserId(String userId);
 
+    Optional<Device> findByUserIdAndDeviceId(String userId, String deviceId);
+
     Optional<Device> findByUserIdAndFcmToken(String userId, String fcmToken);
+
+    void deleteByUserIdAndDeviceId(String userId, String deviceId);
 
     void deleteByUserIdAndFcmToken(String userId, String fcmToken);
 }

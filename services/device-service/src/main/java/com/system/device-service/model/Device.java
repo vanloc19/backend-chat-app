@@ -17,13 +17,15 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "devices")
-@CompoundIndex(name = "userId_fcmToken", def = "{'userId': 1, 'fcmToken': 1}", unique = true)
+@CompoundIndex(name = "userId_deviceId", def = "{'userId': 1, 'deviceId': 1}", unique = true)
 public class Device {
 
     @Id
     private String id;
 
     private String userId;
+
+    private String deviceId;
 
     private String platform;   // ANDROID, IOS, WEB
 

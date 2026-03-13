@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class DeviceInfo {
+    private String deviceId;
     private String platform;   // ANDROID, IOS, WEB
     private String deviceName;
     private String osVersion;

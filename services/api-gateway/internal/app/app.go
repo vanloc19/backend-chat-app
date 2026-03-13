@@ -47,6 +47,7 @@ var publicRoutes = []string{
 	"/auth/api/auth/send-otp",
 	"/auth/api/auth/verify-otp",
 	"/auth/api/auth/refresh",
+	"/auth/api/auth/logout",
 	"/health",
 }
 
@@ -66,13 +67,12 @@ func jwtMiddleware(secret string, next http.Handler) http.Handler {
 			return
 		}
 
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		tokenStr := extractAccessToken(r)
+		if tokenStr == "" {
 			http.Error(w, "unauthorized: missing token", http.StatusUnauthorized)
 			return
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -85,8 +85,38 @@ func jwtMiddleware(secret string, next http.Handler) http.Handler {
 			return
 		}
 
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, "unauthorized: invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		userID, ok := claims["userId"].(string)
+		if !ok || strings.TrimSpace(userID) == "" {
+			http.Error(w, "unauthorized: missing user id", http.StatusUnauthorized)
+			return
+		}
+
+		r.Header.Set("X-User-Id", strings.TrimSpace(userID))
+		if subject, err := claims.GetSubject(); err == nil && strings.TrimSpace(subject) != "" {
+			r.Header.Set("X-User-Phone", strings.TrimSpace(subject))
+		}
+
 		next.ServeHTTP(w, r)
 	})
+}
+
+func extractAccessToken(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	if cookie, err := r.Cookie("accessToken"); err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+
+	return ""
 }
 
 func New() *App {

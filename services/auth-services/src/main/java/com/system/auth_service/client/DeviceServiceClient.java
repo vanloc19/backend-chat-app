@@ -30,6 +30,7 @@ public class DeviceServiceClient {
         try {
             Map<String, String> payload = new HashMap<>();
             payload.put("userId", userId);
+            payload.put("deviceId", deviceInfo.getDeviceId());
             payload.put("platform", deviceInfo.getPlatform());
             payload.put("deviceName", deviceInfo.getDeviceName());
             payload.put("osVersion", deviceInfo.getOsVersion());

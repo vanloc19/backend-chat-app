@@ -10,6 +10,7 @@ import java.time.Instant;
 public class DeviceResponse {
     private String id;
     private String userId;
+    private String deviceId;
     private String platform;
     private String deviceName;
     private String osVersion;
