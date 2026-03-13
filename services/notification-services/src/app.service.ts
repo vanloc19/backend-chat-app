@@ -5,12 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import amqplib, { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
-
-type EventEnvelope = {
-  type: string;
-  payload: Record<string, unknown>;
-  timestamp: string;
-};
+import type { EventEnvelope } from './types/index.js';
 
 @Injectable()
 export class AppService implements OnModuleInit, OnModuleDestroy {

@@ -1,6 +1,6 @@
 /**
  * Shared HTTP middleware for NestJS services.
- * Import and register in each service's AppModule.
+ * Keep this file framework-agnostic so it can be imported without extra deps.
  *
  * Example:
  *   export class AppModule implements NestModule {
@@ -10,21 +10,23 @@
  *   }
  */
 
-import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
+import type {
+  NextFunction,
+  RequestLike,
+  ResponseLike,
+} from "../types/middleware/index.js";
 
-@Injectable()
-export class HttpLoggerMiddleware implements NestMiddleware {
-  private readonly logger = new Logger('HTTP');
-
-  use(req: Request, res: Response, next: NextFunction): void {
+export class HttpLoggerMiddleware {
+  use(req: RequestLike, res: ResponseLike, next: NextFunction): void {
     const { method, originalUrl, ip } = req;
     const start = Date.now();
 
-    res.on('finish', () => {
+    res.on("finish", () => {
       const duration = Date.now() - start;
       const { statusCode } = res;
-      this.logger.log(`${method} ${originalUrl} ${statusCode} ${duration}ms — ${ip}`);
+      console.log(
+        `${method ?? "UNKNOWN"} ${originalUrl ?? req.url ?? "/"} ${statusCode ?? 0} ${duration}ms - ${ip ?? "unknown"}`,
+      );
     });
 
     next();

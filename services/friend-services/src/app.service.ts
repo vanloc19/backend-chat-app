@@ -1,15 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import amqplib, { Channel, ChannelModel } from 'amqplib';
-
-type FriendRequestedEvent = {
-  type: 'friend.requested';
-  payload: {
-    fromUserId: string;
-    toUserId: string;
-    message?: string;
-  };
-  timestamp: string;
-};
+import type { FriendRequestedEvent } from './types/index.js';
 
 @Injectable()
 export class AppService implements OnModuleDestroy {

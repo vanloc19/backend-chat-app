@@ -1,11 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { AppService } from './app.service';
-
-type FriendRequestBody = {
-  fromUserId: string;
-  toUserId: string;
-  message?: string;
-};
+import type { FriendRequestPayload } from './types/index.js';
 
 @Controller()
 export class AppController {
@@ -17,7 +12,7 @@ export class AppController {
   }
 
   @Post('friends/request')
-  async requestFriend(@Body() body: FriendRequestBody) {
+  async requestFriend(@Body() body: FriendRequestPayload) {
     return this.appService.publishFriendRequested({
       fromUserId: body.fromUserId,
       toUserId: body.toUserId,
