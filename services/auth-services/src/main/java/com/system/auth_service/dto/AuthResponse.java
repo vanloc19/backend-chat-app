@@ -23,6 +23,7 @@ public class AuthResponse {
     public static class UserInfo {
         private String id;
         private String phoneNumber;
+        private String gender;
         private String displayName;
         private String avatarUrl;
         private String email;

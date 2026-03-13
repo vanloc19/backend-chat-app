@@ -29,6 +29,8 @@ public class User {
 
     private String passwordHash;
 
+    private String gender;
+
     private String displayName;
 
     private String avatarUrl;

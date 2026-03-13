@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"api-gateway/internal/config"
+	"api-gateway/internal/middleware"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -116,7 +117,7 @@ func New() *App {
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.GatewayPort),
-		Handler: jwtMiddleware(cfg.JWTSecret, mux),
+		Handler: middleware.CORS(cfg.FrontendOrigin, jwtMiddleware(cfg.JWTSecret, mux)),
 	}
 
 	return &App{server: server}

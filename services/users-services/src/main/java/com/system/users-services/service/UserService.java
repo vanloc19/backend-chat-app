@@ -32,6 +32,7 @@ public class UserService {
 
         if (request.getDisplayName() != null) user.setDisplayName(request.getDisplayName());
         if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getGender() != null) user.setGender(request.getGender());
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
 
         return toResponse(userRepository.save(user));
@@ -42,6 +43,7 @@ public class UserService {
         return UserResponse.builder()
                 .id(user.getId())
                 .phoneNumber(user.getPhoneNumber())
+            .gender(user.getGender())
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
                 .avatarUrl(user.getAvatarUrl())

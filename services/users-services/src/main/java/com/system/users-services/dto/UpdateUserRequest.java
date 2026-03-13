@@ -1,6 +1,7 @@
 package com.system.users_service.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,6 +13,9 @@ public class UpdateUserRequest {
 
     @Email(message = "Email không hợp lệ")
     private String email;
+
+    @Pattern(regexp = "^(MALE|FEMALE)$", message = "Giới tính phải là MALE hoặc FEMALE")
+    private String gender;
 
     private String avatarUrl;
 }

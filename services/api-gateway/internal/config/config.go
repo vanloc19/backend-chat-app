@@ -11,12 +11,21 @@ type Config struct {
 	FriendServiceURL   string
 	MessengerServiceURL string
 	NotificationURL    string
+	FrontendOrigin     string
 }
 
 func mustEnv(key string) string {
 	v := os.Getenv(key)
 	if v == "" {
 		panic("missing required env: " + key)
+	}
+	return v
+}
+
+func getEnv(key, defaultValue string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultValue
 	}
 	return v
 }
@@ -31,5 +40,6 @@ func Load() *Config {
 		FriendServiceURL:    mustEnv("FRIEND_SERVICE_URL"),
 		MessengerServiceURL: mustEnv("MESSENGER_SERVICE_URL"),
 		NotificationURL:     mustEnv("NOTIFICATION_SERVICE_URL"),
+		FrontendOrigin:      getEnv("FRONTEND_ORIGIN", "http://localhost:5173"),
 	}
 }

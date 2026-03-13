@@ -29,5 +29,9 @@ public class RegisterRequest {
     @NotBlank(message = "OTP không được để trống")
     private String otp;
 
+    @NotBlank(message = "Giới tính không được để trống")
+    @Pattern(regexp = "^(MALE|FEMALE)$", message = "Giới tính phải là MALE hoặc FEMALE")
+    private String gender;
+
     private DeviceInfo deviceInfo;
 }
