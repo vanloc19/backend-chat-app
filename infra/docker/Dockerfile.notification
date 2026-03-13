@@ -1,0 +1,17 @@
+# Build context: services/notification-services
+# Usage: docker build -f infra/docker/Dockerfile.notification services/notification-services
+
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --quiet
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY package*.json ./
+RUN npm ci --only=production --quiet
+EXPOSE 5004
+CMD ["node", "dist/main"]

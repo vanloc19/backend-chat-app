@@ -15,6 +15,8 @@ flowchart LR
   Notif[notification-services\nNestJS + MongoDB :5004]
   Users[users-services\nSpring Boot + MongoDB :5005]
   Device[device-service\nSpring Boot :5006]
+  Redis[(Redis :6379)]
+  Rabbit[(RabbitMQ :5672 / :15672)]
 
   MongoAuth[(MongoDB: auth)]
   MongoFriend[(MongoDB: friend)]
@@ -31,15 +33,42 @@ flowchart LR
   GW -->|/devices/*| Device
 
   Auth --> MongoAuth
+  Auth --> Redis
   Friend --> MongoFriend
   Notif --> MongoNotif
   Msg --> PgMsg
   Users --> MongoAuth
+  Friend -.events.-> Rabbit
+  Msg -.events.-> Rabbit
+  Notif -.consume.-> Rabbit
 ```
 
 Notes:
 - Gateway routing is prefix-based (`/auth`, `/friends`, `/messenger`, `/notifications`, `/users`, `/devices`).
 - `/messenger` supports WebSocket upgrades.
+
+## Event-driven architecture
+
+```mermaid
+flowchart LR
+  Friend[friend-services]
+  Msg[messenger-services]
+  Notif[notification-services]
+  Rabbit[(RabbitMQ)]
+
+  Friend -->|publish: friend.requested| Rabbit
+  Friend -->|publish: friend.accepted| Rabbit
+  Msg -->|publish: message.created| Rabbit
+  Notif -->|consume events| Rabbit
+```
+
+Notes:
+- Event broker uses RabbitMQ (`amqp://rabbitmq:5672`) in docker-compose.
+- Notification service can subscribe to domain events and fan-out notifications.
+
+Quick test endpoints:
+- Publish friend event: `POST http://localhost:5002/friends/request`
+- Inspect consumed events: `GET http://localhost:5004/notifications/events`
 
 ## Auth flow (Register / Login -> JWT -> Authorized calls)
 
@@ -86,8 +115,60 @@ flowchart LR
 | `users-services` | Java 17, Spring Boot, MongoDB | 5005 | User profile read/update APIs |
 | `device-service` | Java 17, Spring Boot | 5006 | Device registration metadata |
 
+## Infra matrix
+
+| Infra | Port | Role |
+|---|---:|---|
+| `redis` | 6379 | OTP cache + short-lived session/cache data |
+| `rabbitmq` | 5672 / 15672 | Event bus for async publish/consume |
+
 ## Key configuration (high level)
 
 - **Mongo services**: ensure the MongoDB URI includes a database name (e.g. `/auth`, `/friend`, `/notification`) or explicitly set the database name via env vars.
 - **Postgres**: `messenger-services` uses a Postgres DSN (Supabase may require Session Pooler for IPv4-only networks).
+- **Redis**: `auth-services` reads `REDIS_URL` and `REDIS_SSL_ENABLED`.
+- **RabbitMQ**: services can use `MESSAGE_BROKER_URL=amqp://guest:guest@rabbitmq:5672`.
+
+## Infra folder flow
+
+- Infra definitions are centralized in `infra/docker/docker-compose.infra.yml`.
+- Root `docker-compose.yml` extends infra services (`redis`, `rabbitmq`) from that file.
+- Run stack from backend root as usual:
+
+```bash
+docker compose up -d --build
+```
+
+## Backend folder structure (clean style)
+
+```text
+backend/
+├ services/
+│  ├ api-gateway/
+│  ├ auth-services/
+│  ├ users-services/
+│  ├ friend-services/
+│  ├ messenger-services/
+│  ├ notification-services/
+│  └ device-service/
+├ shared/
+│  ├ logger/
+│  ├ middleware/
+│  ├ utils/
+│  ├ libs/
+│  └ types/
+├ infra/
+│  ├ docker/
+│  │  ├ docker-compose.infra.yml
+│  │  ├ Dockerfile.auth
+│  │  └ Dockerfile.user
+│  ├ kafka/
+│  │  └ docker-compose.kafka.yml
+│  ├ redis/
+│  │  └ redis.conf
+│  └ nginx/
+│     └ nginx.conf
+├ docker-compose.yml
+└ README.md
+```
 

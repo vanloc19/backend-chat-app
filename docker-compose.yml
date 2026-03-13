@@ -3,17 +3,44 @@ networks:
     driver: bridge
 
 services:
-  # ─── Auth ────────────────────────────────────────────────
-  auth-services:
-    build: ./services/auth-services
-    container_name: auth-services
+  # ─── Infrastructure ───────────────────────────────────────
+  redis:
+    extends:
+      file: ./infra/docker/docker-compose.infra.yml
+      service: redis
+
+  rabbitmq:
+    extends:
+      file: ./infra/docker/docker-compose.infra.yml
+      service: rabbitmq
+
+  nginx:
+    extends:
+      file: ./infra/docker/docker-compose.infra.yml
+      service: nginx
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+
+  # ─── Auth Service ─────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-services
+      dockerfile: ../../infra/docker/Dockerfile.auth
+    container_name: auth-service
     ports:
       - "5001:5001"
     env_file:
       - ./services/auth-services/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_SSL_ENABLED: "false"
     restart: unless-stopped
     networks:
       - chat-network
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5001/api/auth/health || exit 1"]
       interval: 30s
@@ -21,10 +48,12 @@ services:
       retries: 5
       start_period: 60s
 
-  # ─── Users ───────────────────────────────────────────────
-  users-services:
-    build: ./services/users-services
-    container_name: users-services
+  # ─── User Service ─────────────────────────────────────────
+  user-service:
+    build:
+      context: ./services/users-services
+      dockerfile: ../../infra/docker/Dockerfile.user
+    container_name: user-service
     ports:
       - "5005:5005"
     env_file:
@@ -39,9 +68,11 @@ services:
       retries: 5
       start_period: 60s
 
-  # ─── Device ──────────────────────────────────────────────
+  # ─── Device Service ───────────────────────────────────────
   device-service:
-    build: ./services/device-service
+    build:
+      context: ./services/device-service
+      dockerfile: ../../infra/docker/Dockerfile.device
     container_name: device-service
     ports:
       - "5006:5006"
@@ -57,17 +88,24 @@ services:
       retries: 5
       start_period: 60s
 
-  # ─── Friend ──────────────────────────────────────────────
-  friend-services:
-    build: ./services/friend-services
-    container_name: friend-services
+  # ─── Friend Service ───────────────────────────────────────
+  friend-service:
+    build:
+      context: ./services/friend-services
+      dockerfile: ../../infra/docker/Dockerfile.friend
+    container_name: friend-service
     ports:
       - "5002:5002"
     env_file:
       - ./services/friend-services/.env
+    environment:
+      MESSAGE_BROKER_URL: amqp://guest:guest@rabbitmq:5672
     restart: unless-stopped
     networks:
       - chat-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5002/ 2>&1 | grep -qv 'failed' || exit 0"]
       interval: 20s
@@ -75,10 +113,12 @@ services:
       retries: 3
       start_period: 15s
 
-  # ─── Messenger ───────────────────────────────────────────
-  messenger-services:
-    build: ./services/messenger-services
-    container_name: messenger-services
+  # ─── Messenger Service ────────────────────────────────────
+  messenger-service:
+    build:
+      context: ./services/messenger-services
+      dockerfile: ../../infra/docker/Dockerfile.messenger
+    container_name: messenger-service
     ports:
       - "5003:5003"
     env_file:
@@ -93,17 +133,24 @@ services:
       retries: 3
       start_period: 15s
 
-  # ─── Notification ────────────────────────────────────────
-  notification-services:
-    build: ./services/notification-services
-    container_name: notification-services
+  # ─── Notification Service ─────────────────────────────────
+  notification-service:
+    build:
+      context: ./services/notification-services
+      dockerfile: ../../infra/docker/Dockerfile.notification
+    container_name: notification-service
     ports:
       - "5004:5004"
     env_file:
       - ./services/notification-services/.env
+    environment:
+      MESSAGE_BROKER_URL: amqp://guest:guest@rabbitmq:5672
     restart: unless-stopped
     networks:
       - chat-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5004/ 2>&1 | grep -qv 'failed' || exit 0"]
       interval: 20s
@@ -113,7 +160,9 @@ services:
 
   # ─── API Gateway ─────────────────────────────────────────
   api-gateway:
-    build: ./services/api-gateway
+    build:
+      context: ./services/api-gateway
+      dockerfile: ../../infra/docker/Dockerfile.gateway
     container_name: api-gateway
     ports:
       - "5000:5000"
@@ -123,18 +172,22 @@ services:
     networks:
       - chat-network
     depends_on:
-      auth-services:
+      auth-service:
         condition: service_started
-      users-services:
+      user-service:
         condition: service_started
       device-service:
         condition: service_started
-      friend-services:
+      friend-service:
         condition: service_started
-      messenger-services:
+      messenger-service:
         condition: service_started
-      notification-services:
+      notification-service:
         condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:5000/health || exit 1"]
       interval: 20s

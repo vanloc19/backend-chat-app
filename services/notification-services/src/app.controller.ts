@@ -9,4 +9,9 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('notifications/events')
+  getEvents() {
+    return this.appService.getRecentEvents();
+  }
 }
