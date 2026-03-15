@@ -149,16 +149,16 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: AUTH_SERVICE_URL
-        value: http://auth-service:5001
+        value: https://auth-service-n1va.onrender.com
       - key: USERS_SERVICE_URL
-        value: http://user-service:5005
+        value: https://user-service-yikh.onrender.com
       - key: DEVICE_SERVICE_URL
-        value: http://device-service:5006
+        value: https://device-service-a7me.onrender.com
       - key: FRIEND_SERVICE_URL
-        value: http://friend-service:5002
+        value: https://friend-service.onrender.com
       - key: MESSENGER_SERVICE_URL
-        value: http://messenger-service:5003
+        value: https://messenger-service-eoi9.onrender.com
       - key: NOTIFICATION_SERVICE_URL
-        value: http://notification-service:5004
+        value: https://notification-service-3wjt.onrender.com
       - key: FRONTEND_ORIGIN
         sync: false
