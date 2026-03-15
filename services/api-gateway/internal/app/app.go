@@ -25,6 +25,14 @@ func newReverseProxy(target string, enableWebSocket bool) *httputil.ReverseProxy
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		// Gateway owns CORS policy; remove downstream CORS headers to avoid duplicates.
+		resp.Header.Del("Access-Control-Allow-Origin")
+		resp.Header.Del("Access-Control-Allow-Credentials")
+		resp.Header.Del("Access-Control-Allow-Headers")
+		resp.Header.Del("Access-Control-Allow-Methods")
+		return nil
+	}
 
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
