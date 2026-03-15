@@ -1,0 +1,164 @@
+services:
+  - type: web
+    name: auth-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/auth-services
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/auth/health
+    envVars:
+      - key: PORT
+        value: "5001"
+      - key: AUTH_PORT
+        value: "5001"
+      - key: DB_AUTH_URI
+        sync: false
+      - key: DB_AUTH_NAME
+        sync: false
+      - key: DB_USER_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_SSL_ENABLED
+        value: "true"
+
+  - type: web
+    name: user-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/users-services
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/users/health
+    envVars:
+      - key: PORT
+        value: "5005"
+      - key: USER_PORT
+        value: "5005"
+      - key: DB_USER_URI
+        sync: false
+      - key: DB_USER_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  - type: web
+    name: device-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/device-service
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/devices/health
+    envVars:
+      - key: PORT
+        value: "5006"
+      - key: DEVICE_PORT
+        value: "5006"
+      - key: DB_DEVICE_URI
+        sync: false
+      - key: DB_DEVICE_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  - type: web
+    name: friend-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/friend-services
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: "5002"
+      - key: FRIEND_PORT
+        value: "5002"
+      - key: DB_FRIEND_URL
+        sync: false
+      - key: DB_FRIEND_NAME
+        sync: false
+
+  - type: web
+    name: notification-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/notification-services
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: "5004"
+      - key: NOTIFICATION_PORT
+        value: "5004"
+      - key: DB_NOTIFICATION_URL
+        sync: false
+      - key: DB_NOTIFICATION_NAME
+        sync: false
+
+  - type: web
+    name: messenger-service
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/messenger-services
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: "5003"
+      - key: MESSAGER_PORT
+        value: "5003"
+      - key: DB_MESSAGER_URL
+        sync: false
+      - key: DB_MESSAGER_NAME
+        sync: false
+
+  - type: web
+    name: api-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    autoDeployTrigger: commit
+    rootDir: services/api-gateway
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "5000"
+      - key: GATEWAY_PORT
+        value: "5000"
+      - key: JWT_SECRET
+        sync: false
+      - key: AUTH_SERVICE_URL
+        value: http://auth-service:5001
+      - key: USERS_SERVICE_URL
+        value: http://user-service:5005
+      - key: DEVICE_SERVICE_URL
+        value: http://device-service:5006
+      - key: FRIEND_SERVICE_URL
+        value: http://friend-service:5002
+      - key: MESSENGER_SERVICE_URL
+        value: http://messenger-service:5003
+      - key: NOTIFICATION_SERVICE_URL
+        value: http://notification-service:5004
+      - key: FRONTEND_ORIGIN
+        sync: false
