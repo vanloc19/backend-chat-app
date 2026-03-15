@@ -48,18 +48,27 @@ func newReverseProxy(target string, enableWebSocket bool) *httputil.ReverseProxy
 	return proxy
 }
 
-func isPublicRoute(path string) bool {
-	if path == "/health" {
-		return true
+func requiresAuth(path string) bool {
+	protectedPrefixes := []string{
+		"/users/",
+		"/devices/",
+		"/friends/",
+		"/messenger/",
+		"/notifications/",
 	}
 
-	// Auth endpoints are publicly accessible; auth-service handles OTP/login/register logic.
-	return strings.HasPrefix(path, "/auth/")
+	for _, prefix := range protectedPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func jwtMiddleware(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isPublicRoute(r.URL.Path) {
+		if !requiresAuth(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
