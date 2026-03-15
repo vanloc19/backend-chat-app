@@ -22,6 +22,10 @@ func New() *App {
 	pg := db.Connect(cfg.DBURL)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
 	mux.HandleFunc("/ws", ws.NewHandler(hub))
 
 	server := &http.Server{

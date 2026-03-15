@@ -17,9 +17,9 @@ services:
       - key: DB_AUTH_URI
         sync: false
       - key: DB_AUTH_NAME
-        sync: false
+        value: DB_auth
       - key: DB_USER_NAME
-        sync: false
+        value: Db_users
       - key: JWT_SECRET
         sync: false
       - key: REDIS_URL
@@ -45,7 +45,7 @@ services:
       - key: DB_USER_URI
         sync: false
       - key: DB_USER_NAME
-        sync: false
+        value: Db_users
       - key: JWT_SECRET
         sync: false
 
@@ -67,7 +67,7 @@ services:
       - key: DB_DEVICE_URI
         sync: false
       - key: DB_DEVICE_NAME
-        sync: false
+        value: DB_device
       - key: JWT_SECRET
         sync: false
 
@@ -89,7 +89,7 @@ services:
       - key: DB_FRIEND_URL
         sync: false
       - key: DB_FRIEND_NAME
-        sync: false
+        value: Db_friend
 
   - type: web
     name: notification-service
@@ -109,7 +109,7 @@ services:
       - key: DB_NOTIFICATION_URL
         sync: false
       - key: DB_NOTIFICATION_NAME
-        sync: false
+        value: Db_notification
 
   - type: web
     name: messenger-service
@@ -120,7 +120,7 @@ services:
     rootDir: services/messenger-services
     dockerContext: .
     dockerfilePath: Dockerfile
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: PORT
         value: "5003"
@@ -129,7 +129,7 @@ services:
       - key: DB_MESSAGER_URL
         sync: false
       - key: DB_MESSAGER_NAME
-        sync: false
+        value: Db_messager
 
   - type: web
     name: api-gateway
