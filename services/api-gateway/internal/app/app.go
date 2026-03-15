@@ -48,24 +48,13 @@ func newReverseProxy(target string, enableWebSocket bool) *httputil.ReverseProxy
 	return proxy
 }
 
-// publicRoutes are paths that skip JWT verification.
-var publicRoutes = []string{
-	"/auth/api/auth/login",
-	"/auth/api/auth/register",
-	"/auth/api/auth/send-otp",
-	"/auth/api/auth/verify-otp",
-	"/auth/api/auth/refresh",
-	"/auth/api/auth/logout",
-	"/health",
-}
-
 func isPublicRoute(path string) bool {
-	for _, route := range publicRoutes {
-		if strings.HasPrefix(path, route) {
-			return true
-		}
+	if path == "/health" {
+		return true
 	}
-	return false
+
+	// Auth endpoints are publicly accessible; auth-service handles OTP/login/register logic.
+	return strings.HasPrefix(path, "/auth/")
 }
 
 func jwtMiddleware(secret string, next http.Handler) http.Handler {
